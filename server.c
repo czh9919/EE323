@@ -6,11 +6,12 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <assert.h>
 
 #define MYPORT "5700"
 #define BACKLOG 10
 #define MAXDATASIZE 100
-char buf[MAXDATASIZE];
+char buf[MAXDATASIZE]={0};
 
 int main(int argc, char const *argv[])
 {
@@ -81,22 +82,22 @@ int main(int argc, char const *argv[])
     addr_size = sizeof(their_addr);
     printf("perpare to serve\n");
     printf("waiting for connecting:\n");
-    newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-    fork();
+    
     while (1)
     {
         // printf("hello world\n");
+        newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+        if(fork()!=0)
+        {
+            continue;
+        }
         if ((status = recv(newfd, buf, MAXDATASIZE, 0)) == 0)
         {
             perror("connection lose");
-            continue;
+            break;
         }
-        if ((status = recv(newfd, buf, MAXDATASIZE, 0)) == -1)
-        {
-            perror("Mistake happens");
-            continue;
-        }
-        puts(buf);
+        if(buf[0]!='\0')
+            puts(buf);
     }
     freeaddrinfo(res);
     return 0;
