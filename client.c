@@ -62,7 +62,10 @@ int main(int argc, char const *argv[])
     printf("begin make socket\n");
 
     sockfd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
-    connect(sockfd,res->ai_addr,res->ai_addrlen);
+    if(connect(sockfd,res->ai_addr,res->ai_addrlen)==-1)
+    {
+        perror("connect error");
+    }
 
     scanf("%s",buf);
     send(newfd,buf,strlen(buf),0);

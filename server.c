@@ -81,11 +81,12 @@ int main(int argc, char const *argv[])
     }
     addr_size = sizeof(their_addr);
     printf("perpare to serve\n");
-    printf("waiting for connecting:\n");
+    
     
     while (1)
     {
         // printf("hello world\n");
+        printf("waiting for accept:\n");
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
         if(fork()!=0)
         {
