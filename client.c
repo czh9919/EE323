@@ -31,7 +31,9 @@ int main(int argc, char const *argv[])
     memset(&hints,0,sizeof(hints));
     hints.ai_family=AF_UNSPEC;
     hints.ai_socktype=SOCK_STREAM;
-    hints.ai_flags=AI_PASSIVE;
+
+    strcpy(buf,"hello");
+
 
     if((status=getaddrinfo("dbd039.cn","5700",&hints,&res))!=0)
     {
@@ -62,13 +64,13 @@ int main(int argc, char const *argv[])
     printf("begin make socket\n");
 
     sockfd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
-    if(connect(sockfd,res->ai_addr,res->ai_addrlen)==-1)
+    if((status=connect(sockfd,res->ai_addr,res->ai_addrlen))==-1)
     {
         perror("connect error");
     }
 
-    scanf("%s",buf);
-    send(newfd,buf,strlen(buf),0);
+
+    send(sockfd,buf,strlen(buf),0);
 
     freeaddrinfo(res);
     return 0;

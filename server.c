@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include <assert.h>
 
+#define NDEBUG
+
 #define MYPORT "5700"
 #define BACKLOG 10
 #define MAXDATASIZE 100
@@ -88,17 +90,20 @@ int main(int argc, char const *argv[])
         // printf("hello world\n");
         printf("waiting for accept:\n");
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-        if(fork()!=0)
+        /* if(fork()!=0)
         {
             continue;
-        }
+        } */
         if ((status = recv(newfd, buf, MAXDATASIZE, 0)) == 0)
         {
             perror("connection lose");
             break;
         }
         if(buf[0]!='\0')
+        {
             puts(buf);
+        }
+            
     }
     freeaddrinfo(res);
     return 0;
