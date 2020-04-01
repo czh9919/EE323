@@ -6,14 +6,45 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <assert.h>
 
-#define NDEBUG
-
-#define MYPORT "5700"
 #define BACKLOG 10
 #define MAXDATASIZE 100
+#define error -1
 char buf[MAXDATASIZE]={0};
+
+char port[100]={0};
+
+int check_options(int argc,char const *argv[])
+{
+    int p_check=0;
+    for (int i = 1;i < argc; i+=2)
+    {
+        const char *p=argv[i];
+        const char *s=argv[i+1];
+        if((*p)!='-')
+        {
+            return error;
+        }
+        while(*(++p))
+        {
+            switch(*p)
+            {
+                case('p'):
+                    strcpy(port,s);
+                    p_check=1;
+                    break;
+                default:
+                    return error;
+            }
+        }
+    }
+    if(p_check!=1)
+    {
+        return error;
+    }
+    return 1;
+}
+
 
 int main(int argc, char const *argv[])
 {
@@ -26,18 +57,22 @@ int main(int argc, char const *argv[])
     int sockfd, newfd;
 
     char hostname[100];
-    // if (argc != 2)
-    // {
-    //     fprintf(stderr,"usage: showip hostname\n");
-    //     return 1;
-    // }
-
+    if (argc != 3)
+    {
+        fprintf(stderr,"lost arguement\n");
+        return 1;
+    }
+    if(check_options(argc,argv)==error)
+    {
+        fprintf(stderr,"arguement wrong\n");
+        return 1;
+    }
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
 
-    if ((status = getaddrinfo(NULL, "5700", &hints, &res)) != 0)
+    if ((status = getaddrinfo(NULL, port, &hints, &res)) != 0)
     {
         fprintf(stderr, "getaddinfo: %s\n", gai_strerror(status));
         return 2;
@@ -104,7 +139,7 @@ int main(int argc, char const *argv[])
             puts(buf);
             printf("success");
         }
-            
+
     }
     freeaddrinfo(res);
     return 0;
