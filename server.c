@@ -85,15 +85,15 @@ int main(int argc, char const *argv[])
     printf("perpare to serve\n");
     
     
-    while (1)
+    for(int i=0; i<10;i++)
     {
         // printf("hello world\n");
         printf("waiting for accept:\n");
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-        /* if(fork()!=0)
+        if(fork()!=0)
         {
             continue;
-        } */
+        }
         if ((status = recv(newfd, buf, MAXDATASIZE, 0)) == 0)
         {
             perror("connection lose");
@@ -102,6 +102,7 @@ int main(int argc, char const *argv[])
         if(buf[0]!='\0')
         {
             puts(buf);
+            printf("success");
         }
             
     }

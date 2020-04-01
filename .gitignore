@@ -3,3 +3,5 @@ test
 TODOLIST
 client
 server
+*.sh
+*.py
