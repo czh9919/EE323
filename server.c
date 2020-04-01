@@ -9,7 +9,7 @@
 
 #define BACKLOG 10
 #define MAXDATASIZE 100
-#define error -1
+#define ERROR -1
 char buf[MAXDATASIZE]={0};
 
 char port[100]={0};
@@ -23,7 +23,7 @@ int check_options(int argc,char const *argv[])
         const char *s=argv[i+1];
         if((*p)!='-')
         {
-            return error;
+            return ERROR;
         }
         while(*(++p))
         {
@@ -34,13 +34,13 @@ int check_options(int argc,char const *argv[])
                     p_check=1;
                     break;
                 default:
-                    return error;
+                    return ERROR;
             }
         }
     }
     if(p_check!=1)
     {
-        return error;
+        return ERROR;
     }
     return 1;
 }
@@ -62,7 +62,7 @@ int main(int argc, char const *argv[])
         fprintf(stderr,"lost arguement\n");
         return 1;
     }
-    if(check_options(argc,argv)==error)
+    if(check_options(argc,argv)==ERROR)
     {
         fprintf(stderr,"arguement wrong\n");
         return 1;
@@ -137,7 +137,7 @@ int main(int argc, char const *argv[])
         if(buf[0]!='\0')
         {
             puts(buf);
-            printf("success");
+            printf("success\n");
         }
 
     }

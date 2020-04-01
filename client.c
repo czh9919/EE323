@@ -11,7 +11,7 @@
 #define MAXDATASIZE 100
 char buf[MAXDATASIZE];
 
-#define error -1
+#define ERROR -1
 
 char hostname[100]={0};
 char port[100]={0};
@@ -26,7 +26,7 @@ int check_options(int argc,char const *argv[])
         const char *s=argv[i+1];
         if((*p)!='-')
         {
-            return error;
+            return ERROR;
         }
         while(*(++p))
         {
@@ -41,13 +41,13 @@ int check_options(int argc,char const *argv[])
                     p_check=1;
                     break;
                 default:
-                    return error;
+                    return ERROR;
             }
         }
     }
     if(p_check!=1||h_check!=1)
     {
-        return error;
+        return ERROR;
     }
     return 1;
 }
@@ -68,7 +68,7 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    if(check_options(argc,argv)==error)
+    if(check_options(argc,argv)==ERROR)
     {
         fprintf(stderr,"argument wrong\n");
         return 1;
