@@ -129,7 +129,7 @@ int main(int argc, char const *argv[])
         }
         while(1)
         {
-            if ((status = recv(newfd, buf, MAXDATASIZE, 0)) == 0)
+            if ((status = recv(newfd, buf, MAXDATASIZE, 0)) != 0)
             {
                 perror("connection lose");
                 break;
@@ -141,5 +141,6 @@ int main(int argc, char const *argv[])
         }
     }
     freeaddrinfo(res);
+    close(sockfd);
     return 0;
 }
