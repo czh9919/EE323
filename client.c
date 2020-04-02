@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
@@ -8,15 +9,63 @@
 #include <netinet/in.h>
 
 #define BACKLOG 10
-#define MAXDATASIZE 100
-char buf[MAXDATASIZE];
+#define MAXDATASIZE 1024
 
 #define ERROR -1
 
 char hostname[100] = {0};
 char port[100] = {0};
 
-int send_all(int s, char *buf, int *len)
+struct node
+{
+    char buf[MAXDATASIZE];
+    struct node *next;
+};
+
+struct node *save_f(FILE *fp)
+{
+    struct node *head = NULL;
+    struct node *current = NULL;
+    struct node *prev = NULL;
+    while (1)
+    {
+        if (head == NULL)
+        {
+            head = (struct node *)malloc(sizeof(struct node));
+            current = head;
+        }
+        else
+        {
+            current = (struct node *)malloc(sizeof(struct node));
+            prev->next = current;
+        }
+        if (fgets(current->buf, MAXDATASIZE, fp) == NULL)
+        {
+            break;
+        }
+        prev = current;
+    }
+    return head;
+}
+
+int send_all(int sockfd, struct node *head)
+{
+    struct node *current = NULL;
+    int n = 0;
+    current = head;
+    while (current != NULL)
+    {
+        n = send(sockfd, current->buf, MAXDATASIZE, 0);
+        if (n == -1)
+        {
+            break;
+        }
+        current = current->next;
+    }
+    return (n == -1) ? -1 : 0;
+}
+
+/* int send_all(int s, char *buf, int *len)
 {
     int total = 0;
     int bytesleft = *len;
@@ -34,7 +83,7 @@ int send_all(int s, char *buf, int *len)
     }
     *len = total;
     return (n == -1) ? -1 : 0;
-}
+} */
 
 int check_options(int argc, char const *argv[])
 {
@@ -81,6 +130,7 @@ int main(int argc, char const *argv[])
     int status;
     char ipstr[INET6_ADDRSTRLEN];
     int sockfd, newfd;
+    struct node *head = NULL;
 
     if (argc != 5)
     {
@@ -124,6 +174,9 @@ int main(int argc, char const *argv[])
         printf(" %s:%s\n", ipver, ipstr);
     }
 
+    printf("begin read\n");
+    head=save_f(stdin);
+
     printf("begin make socket\n");
 
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -131,8 +184,7 @@ int main(int argc, char const *argv[])
     {
         perror("connect error");
     }
-    scanf("%s",buf);
-    send(sockfd, buf, strlen(buf), 0);
+    send_all(sockfd,head);
 
     freeaddrinfo(res);
     return 0;

@@ -8,7 +8,7 @@
 #include <netinet/in.h>
 
 #define BACKLOG 10
-#define MAXDATASIZE 100
+#define MAXDATASIZE 1024
 #define ERROR -1
 char buf[MAXDATASIZE] = {0};
 
@@ -127,15 +127,17 @@ int main(int argc, char const *argv[])
         {
             continue;
         }
-        if ((status = recv(newfd, buf, MAXDATASIZE, 0)) == 0)
+        while(1)
         {
-            perror("connection lose");
-            break;
-        }
-        if (buf[0] != '\0')
-        {
-            puts(buf);
-            printf("success\n");
+            if ((status = recv(newfd, buf, MAXDATASIZE, 0)) == 0)
+            {
+                perror("connection lose");
+                break;
+            }
+            if (buf[0] != '\0')
+            {
+                puts(buf);
+            }
         }
     }
     freeaddrinfo(res);

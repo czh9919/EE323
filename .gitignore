@@ -6,3 +6,4 @@ server
 *.sh
 *.py
 *.html
+*.txt
