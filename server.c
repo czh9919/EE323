@@ -10,41 +10,40 @@
 #define BACKLOG 10
 #define MAXDATASIZE 100
 #define ERROR -1
-char buf[MAXDATASIZE]={0};
+char buf[MAXDATASIZE] = {0};
 
-char port[100]={0};
+char port[100] = {0};
 
-int check_options(int argc,char const *argv[])
+int check_options(int argc, char const *argv[])
 {
-    int p_check=0;
-    for (int i = 1;i < argc; i+=2)
+    int p_check = 0;
+    for (int i = 1; i < argc; i += 2)
     {
-        const char *p=argv[i];
-        const char *s=argv[i+1];
-        if((*p)!='-')
+        const char *p = argv[i];
+        const char *s = argv[i + 1];
+        if ((*p) != '-')
         {
             return ERROR;
         }
-        while(*(++p))
+        while (*(++p))
         {
-            switch(*p)
+            switch (*p)
             {
-                case('p'):
-                    strcpy(port,s);
-                    p_check=1;
-                    break;
-                default:
-                    return ERROR;
+            case ('p'):
+                strcpy(port, s);
+                p_check = 1;
+                break;
+            default:
+                return ERROR;
             }
         }
     }
-    if(p_check!=1)
+    if (p_check != 1)
     {
         return ERROR;
     }
     return 1;
 }
-
 
 int main(int argc, char const *argv[])
 {
@@ -59,12 +58,12 @@ int main(int argc, char const *argv[])
     char hostname[100];
     if (argc != 3)
     {
-        fprintf(stderr,"lost arguement\n");
+        fprintf(stderr, "lost arguement\n");
         return 1;
     }
-    if(check_options(argc,argv)==ERROR)
+    if (check_options(argc, argv) == ERROR)
     {
-        fprintf(stderr,"arguement wrong\n");
+        fprintf(stderr, "arguement wrong\n");
         return 1;
     }
     memset(&hints, 0, sizeof(hints));
@@ -118,14 +117,13 @@ int main(int argc, char const *argv[])
     }
     addr_size = sizeof(their_addr);
     printf("perpare to serve\n");
-    
-    
-    for(int i=0; i<10;i++)
+
+    for (int i = 0; i < 10; i++)
     {
         // printf("hello world\n");
         printf("waiting for accept:\n");
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-        if(fork()!=0)
+        if (fork() != 0)
         {
             continue;
         }
@@ -134,12 +132,11 @@ int main(int argc, char const *argv[])
             perror("connection lose");
             break;
         }
-        if(buf[0]!='\0')
+        if (buf[0] != '\0')
         {
             puts(buf);
             printf("success\n");
         }
-
     }
     freeaddrinfo(res);
     return 0;
