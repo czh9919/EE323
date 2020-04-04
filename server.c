@@ -117,6 +117,8 @@ int main(int argc, char const *argv[])
     addr_size = sizeof(their_addr);
     printf("perpare to serve\n");
 
+
+    int n;
     while (1)
     {
         // printf("hello world\n");
@@ -130,6 +132,13 @@ int main(int argc, char const *argv[])
         {
             fprintf(stdout,"%s", buf);
             fflush(stdout);
+            n = send(newfd, "1", MAXDATASIZE, 0);
+            if (n == -1)
+            {
+                perror("recv wrong");
+                continue;
+            }
+            
         }
         printf("\n");
     }

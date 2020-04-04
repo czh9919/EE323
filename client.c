@@ -43,9 +43,9 @@ struct node *save_f(FILE *fp)
         {
             break;
         }
-        if(current->buf[0]=='\n')
+        if(current->buf[0]=='\n' &&current ->buf[1]=='\n')
         {
-            break;
+            exit(0);
         }
         prev = current;
     }
@@ -57,6 +57,7 @@ int send_all(int sockfd, struct node *head)
     struct node *current = NULL;
     int n = 0;
     current = head;
+    char temp[MAXDATASIZE];
     while (current != NULL)
     {
         n = send(sockfd, current->buf, MAXDATASIZE, 0);
@@ -64,6 +65,15 @@ int send_all(int sockfd, struct node *head)
         {
             perror("send wrong");
             break;
+        }
+        if(recv(sockfd,temp,MAXDATASIZE,0)<1)
+        {
+            perror("send wrong");
+            break;
+        }
+        if(strcmp(temp,"1")!=0)
+        {
+            continue;
         }
         current = current->next;
     }
