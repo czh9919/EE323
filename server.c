@@ -8,7 +8,7 @@
 #include <netinet/in.h>
 
 #define BACKLOG 10
-#define MAXDATASIZE 1024
+#define MAXDATASIZE 100
 #define ERROR -1
 char buf[MAXDATASIZE] = {0};
 
@@ -55,7 +55,6 @@ int main(int argc, char const *argv[])
     char ipstr[INET6_ADDRSTRLEN];
     int sockfd, newfd;
 
-    char hostname[100];
     if (argc != 3)
     {
         fprintf(stderr, "lost arguement\n");
@@ -118,27 +117,21 @@ int main(int argc, char const *argv[])
     addr_size = sizeof(their_addr);
     printf("perpare to serve\n");
 
-    for (int i = 0; i < 10; i++)
+    while (1)
     {
         // printf("hello world\n");
         printf("waiting for accept:\n");
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-        if (fork() != 0)
+        if (fork() == 0)
         {
             continue;
         }
-        while(1)
+        while ((status = recv(newfd, buf, MAXDATASIZE, 0)) > 0)
         {
-            if ((status = recv(newfd, buf, MAXDATASIZE, 0)) != 0)
-            {
-                perror("connection lose");
-                break;
-            }
-            if (buf[0] != '\0')
-            {
-                puts(buf);
-            }
+            fprintf(stdout,"%s", buf);
+            fflush(stdout);
         }
+        printf("\n");
     }
     freeaddrinfo(res);
     close(sockfd);

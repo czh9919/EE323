@@ -9,7 +9,7 @@
 #include <netinet/in.h>
 
 #define BACKLOG 10
-#define MAXDATASIZE 1024
+#define MAXDATASIZE 100
 
 #define ERROR -1
 
@@ -43,6 +43,10 @@ struct node *save_f(FILE *fp)
         {
             break;
         }
+        if(current->buf[0]=='\n')
+        {
+            break;
+        }
         prev = current;
     }
     return head;
@@ -58,6 +62,7 @@ int send_all(int sockfd, struct node *head)
         n = send(sockfd, current->buf, MAXDATASIZE, 0);
         if (n == -1)
         {
+            perror("send wrong");
             break;
         }
         current = current->next;
@@ -65,25 +70,6 @@ int send_all(int sockfd, struct node *head)
     return (n == -1) ? -1 : 0;
 }
 
-/* int send_all(int s, char *buf, int *len)
-{
-    int total = 0;
-    int bytesleft = *len;
-    int n;
-
-    while (total < *len)
-    {
-        n = send(s, buf + total, bytesleft, 0);
-        if (n == -1)
-        {
-            break;
-        }
-        total += n;
-        bytesleft -= n;
-    }
-    *len = total;
-    return (n == -1) ? -1 : 0;
-} */
 
 int check_options(int argc, char const *argv[])
 {
@@ -184,6 +170,7 @@ int main(int argc, char const *argv[])
     {
         perror("connect error");
     }
+    printf("finished connect\n");
     send_all(sockfd,head);
 
     freeaddrinfo(res);
