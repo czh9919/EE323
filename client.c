@@ -118,7 +118,7 @@ int main(int argc, char const *argv[])
     int sockfd, newfd;
     struct node *head = NULL;
 
-    if (argc != 5)
+    if (argc < 5)
     {
         fprintf(stderr, "lose argument\n");
         return 1;

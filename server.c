@@ -55,7 +55,7 @@ int main(int argc, char const *argv[])
     char ipstr[INET6_ADDRSTRLEN];
     int sockfd, newfd;
 
-    if (argc != 3)
+    if (argc < 3)
     {
         fprintf(stderr, "lost arguement\n");
         return 1;
