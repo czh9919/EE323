@@ -76,7 +76,7 @@ int main(int argc, char const *argv[])
         return 2;
     }
 
-    for (p = res; p != NULL; p = p->ai_next)
+/*     for (p = res; p != NULL; p = p->ai_next)
     {
         void *addr;
         char *ipver;
@@ -94,13 +94,13 @@ int main(int argc, char const *argv[])
         }
         inet_ntop(p->ai_family, addr, ipstr, sizeof(ipstr));
         printf(" %s:%s\n", ipver, ipstr);
-    }
+    } */
 
-    printf("begin make socket\n");
+    //printf("begin make socket\n");
 
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
 
-    printf("begin bind\n");
+    //printf("begin bind\n");
 
     if (bind(sockfd, res->ai_addr, res->ai_addrlen) == -1)
     {
@@ -115,14 +115,14 @@ int main(int argc, char const *argv[])
         return 2;
     }
     addr_size = sizeof(their_addr);
-    printf("perpare to serve\n");
+    //printf("perpare to serve\n");
 
 
     int n;
     while (1)
     {
         // printf("hello world\n");
-        printf("waiting for accept:\n");
+        //printf("waiting for accept:\n");
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
         if (fork() == 0)
         {

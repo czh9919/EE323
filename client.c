@@ -22,7 +22,7 @@ struct node
     struct node *next;
 };
 
-struct node *save_f(FILE *fp)
+/* struct node *save_f(FILE *fp)
 {
     struct node *head = NULL;
     struct node *current = NULL;
@@ -50,28 +50,50 @@ struct node *save_f(FILE *fp)
         prev = current;
     }
     return head;
-}
+} */
 
-int send_all(int sockfd, struct node *head)
+int send_all(int sockfd, struct node *head, FILE *fp)
 {
     struct node *current = NULL;
     int n = 0;
     current = head;
     char temp[MAXDATASIZE];
-    while (current != NULL)
+    int i = 0;
+    while (1)
     {
+        current = (struct node *)malloc(sizeof(struct node));
+        if (fgets(current->buf, MAXDATASIZE, fp) == NULL)
+        {
+            break;
+        }
+        if (current->buf[0] == '\n')
+        {
+            i++;
+        }
+        else
+        {
+            i=0;
+            if(strrchr(current->buf,'\n')!=NULL)
+            {
+                i++;
+            }
+        }
+        if (i == 2)
+        {
+            return 0;
+        }
         n = send(sockfd, current->buf, MAXDATASIZE, 0);
         if (n == -1)
         {
             perror("send wrong");
             break;
         }
-        if(recv(sockfd,temp,MAXDATASIZE,0)<1)
+        if (recv(sockfd, temp, MAXDATASIZE, 0) < 1)
         {
             perror("send wrong");
             break;
         }
-        if(strcmp(temp,"1")!=0)
+        if (strcmp(temp, "1") != 0)
         {
             continue;
         }
@@ -79,7 +101,6 @@ int send_all(int sockfd, struct node *head)
     }
     return (n == -1) ? -1 : 0;
 }
-
 
 int check_options(int argc, char const *argv[])
 {
@@ -171,7 +192,7 @@ int main(int argc, char const *argv[])
     }
 
     printf("begin read\n");
-    head=save_f(stdin);
+    //head=save_f(stdin);
 
     printf("begin make socket\n");
 
@@ -181,7 +202,7 @@ int main(int argc, char const *argv[])
         perror("connect error");
     }
     printf("finished connect\n");
-    send_all(sockfd,head);
+    send_all(sockfd, head, stdin);
 
     freeaddrinfo(res);
     return 0;
