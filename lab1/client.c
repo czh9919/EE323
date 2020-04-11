@@ -22,6 +22,12 @@ struct node
     struct node *next;
 };
 
+/* 
+I cancel the linked list after I realized the feater that is when I type ENTER to send the message.
+But I keep the struct in the client.
+Maybe one day I can use it. 
+*/
+
 /* struct node *save_f(FILE *fp)
 {
     struct node *head = NULL;
@@ -70,10 +76,10 @@ int send_all(int sockfd, struct node *head, FILE *fp)
         {
             i++;
         }
-        else
+        else //not check double time
         {
             i=0;
-            if(strrchr(current->buf,'\n')!=NULL)
+            if(strrchr(current->buf,'\n')!=NULL) //if there is a \n at the end of the string. any serach function is fine.
             {
                 i++;
             }
@@ -82,13 +88,13 @@ int send_all(int sockfd, struct node *head, FILE *fp)
         {
             return 0;
         }
-        n = send(sockfd, current->buf, MAXDATASIZE, 0);
+        n = send(sockfd, current->buf, MAXDATASIZE, 0); // Send the messages
         if (n == -1)
         {
             perror("send wrong");
             break;
         }
-        if (recv(sockfd, temp, MAXDATASIZE, 0) < 1)
+        if (recv(sockfd, temp, MAXDATASIZE, 0) < 1) //waiting for the "OK to send" message comes
         {
             perror("send wrong");
             break;
@@ -97,7 +103,7 @@ int send_all(int sockfd, struct node *head, FILE *fp)
         {
             continue;
         }
-        current = current->next;
+        //current = current->next;
     }
     return (n == -1) ? -1 : 0;
 }
@@ -171,7 +177,7 @@ int main(int argc, char const *argv[])
         return 2;
     }
 
-    for (p = res; p != NULL; p = p->ai_next)
+/*     for (p = res; p != NULL; p = p->ai_next)
     {
         void *addr;
         char *ipver;
@@ -189,20 +195,20 @@ int main(int argc, char const *argv[])
         }
         inet_ntop(p->ai_family, addr, ipstr, sizeof(ipstr));
         printf(" %s:%s\n", ipver, ipstr);
-    }
+    } */
 
-    printf("begin read\n");
+    // printf("begin read\n");
     //head=save_f(stdin);
 
-    printf("begin make socket\n");
+    // printf("begin make socket\n");
 
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if ((status = connect(sockfd, res->ai_addr, res->ai_addrlen)) == -1)
     {
         perror("connect error");
     }
-    printf("finished connect\n");
-    send_all(sockfd, head, stdin);
+    // printf("finished connect\n");
+    send_all(sockfd, head, stdin); //send messages
 
     freeaddrinfo(res);
     return 0;

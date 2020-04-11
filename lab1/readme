@@ -1,0 +1,46 @@
+# readme
+
+/author Chang Zihao
+/ID     20206018
+/project #1
+
+## Reference
+
+Beejs guild to network programming
+http://www.cplusplus.com/reference/cstring/strrchr/
+
+## An indication of how much time you spent doing the assignment. 
+
+I spent a day configuring the Linux environment suitable for my programming
+I spent about three days to finish this project.
+The first day I finish the basic client and server which can connect with each other.
+The second day I finish multithreading in the server and almost know how to transfer a big file between this two program.
+And use python to write a test file that can automatically test.
+It is powerful.
+The last day I spent the whole day finishing the feather that can transfer a big file.
+First I use a linked list to save data and transfer them one by one.
+But according to the text file, the output is wrong from line 136.
+I tried to transfer the whole node but can't. 
+It is unrelated to TCP.
+TCP never lost the message.
+When night fell, I realized that I couldn't send all the data without stop.
+So I send the message to the client after the server output the data to ensure receive have time to output.
+At that time, I succeeded.
+
+##  Did it help you to learn? What did it help you to learn? Do you have any suggestions form improvement?
+
+Yes, It helps me to learn.
+I totally understand TCP never lost the message.
+And TCP just sends my message as a stream.
+I have understood the application layer protocol.
+I have the concept of how the HTTP works.
+Maybe in the future, we can try to finish an HTTP protocol?
+It is fascinating.
+
+## Any information that will help us to grade your work in the most favorable light. 
+
+1. I totally finish all the feater of these projects.
+2. The whole struct of my program is easy to add function in the future.
+3. I use fgets() function if in the future I need to finish an HTTP protocol, it is useful.
+4. I don't like getopt(), so I design a function named a check_options() in server.
+5. Using getaddrinfo() to find the address if hostname isn't a IP address.
