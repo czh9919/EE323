@@ -233,13 +233,13 @@ int main(int argc, char const *argv[])
             {
                 perror("connect error");
             }
-            read(p[0], buf, MAXDATASIZE);
+            /* read(p[0], buf, MAXDATASIZE);
             fprintf(stdout, "%s", buf);
             fflush(stdout);
             send(sockfd, buf, MAXDATASIZE, 0);
             recv(sockfd, buf, MAXDATASIZE, 0);
             fprintf(stdout, "%s", buf);
-            fflush(stdout);
+            fflush(stdout); */
         }
     }
 
