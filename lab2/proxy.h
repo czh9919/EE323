@@ -25,8 +25,8 @@ struct HTTP_Header
 };
 
 /*
-GET / HTTP/1.1
-Host: dbd039.cn
+GET / HTTP/1.0
+Host: baidu.com
 Connection: keep-alive
 DNT: 1
 Upgrade-Insecure-Requests: 1
@@ -34,4 +34,10 @@ User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,* /*;q=0.8,application/signed-exchange;v=b3;q=0.9
 Accept-Encoding: gzip, deflate
 Accept-Language: zh-CN,zh;q=0.9
+
+Get / HTTP/1.1
+Host: www.baidu.com
+Connection: keep-alive
+
+
 */
