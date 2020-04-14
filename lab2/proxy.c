@@ -1,7 +1,7 @@
 #include "proxy.h"
 
 char buf[MAXDATASIZE] = {0};
-char d_buf[MAXDATASIZE]={0};
+char d_buf[MAXDATASIZE] = {0};
 
 char port[100] = {0};
 char o_method[100] = {};
@@ -186,52 +186,68 @@ int main(int argc, char const *argv[])
     }
     addr_size = sizeof(their_addr);
     int n;
-    newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-
-    if ((status = recv(newfd, buf, MAXDATASIZE, 0)) > 0)
+    while (1)
     {
-        char pch[MAXDATASIZE];
-        int i;
-        fprintf(stdout, " %s \n", buf);
-        fflush(stdout);
-        strcpy(pch, buf);
-        segment_h(pch);
-        fprintf(stdout, "%s", o_URL);
-        fprintf(stdout, "%s", o_object);
-        segment(o_URL);
-        if (*o_port == '\0')
+        newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
+        if (fork() == 0)
         {
-            strcpy(o_port, "80");
+            continue;
         }
-
-        if ((status = getaddrinfo(o_URL, o_port, &hints, &res)) != 0)
+        if ((status = recv(newfd, buf, MAXDATASIZE, 0)) > 0)
         {
-            fprintf(stderr, "getaddinfo: %s\n", gai_strerror(status));
-            return 2;
-        }
-        sersock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-        if ((status = connect(sersock, res->ai_addr, res->ai_addrlen)) == -1)
-        {
-            perror("connect error");
-        }
-        //sprintf(buf,"%s %s HTTP/1.0\r\nHost: %s\r\n\n",o_method,o_object,o_URL);
-        fprintf(stdout, "%s", buf);
-        fflush(stdout);
-        send(sersock, buf, strlen(buf), 0);
-        recv(sersock, buf, MAXDATASIZE, 0);
+            char pch[MAXDATASIZE];
+            int i;
+            fprintf(stdout, " %s \n", buf);
+            fflush(stdout);
+            strcpy(pch, buf);
+            segment_h(pch);
+            fprintf(stdout, "%s", o_URL);
+            fprintf(stdout, "%s", o_object);
+            segment(o_URL);
+            if (*o_port == '\0')
+            {
+                strcpy(o_port, "80");
+            }
 
-        fprintf(stdout, "%s", buf);
-        send(newfd, buf, strlen(buf), 0);
-        fflush(stdout);
+            if ((status = getaddrinfo(o_URL, o_port, &hints, &res)) != 0)
+            {
+                fprintf(stderr, "getaddinfo: %s\n", gai_strerror(status));
+                return 2;
+            }
+            sersock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+            if ((status = connect(sersock, res->ai_addr, res->ai_addrlen)) == -1)
+            {
+                perror("connect error");
+            }
+            //sprintf(buf,"%s %s HTTP/1.0\r\nHost: %s\r\n\n",o_method,o_object,o_URL);
+            fprintf(stdout, "%s", buf);
+            fflush(stdout);
+            send(sersock, buf, strlen(buf), 0);
+            memset(buf, 0, strlen(buf));
+            /* recv(sersock, buf, MAXDATASIZE, 0);
 
-        recv(sersock,d_buf,648,0);
-        fprintf(stdout, "%s", buf);
-        fflush(stdout);
-        send(newfd, d_buf, strlen(buf), 0);
-        freeaddrinfo(res);
-        close(sockfd);
-        close(newfd);
-        close(sersock);
-        return 0;
+            send(newfd, buf, strlen(buf), 0);
+            fprintf(stdout, "%s", buf);
+            fflush(stdout); */
+
+            int t = 0;
+            while (1)
+            {
+                if ((t = recv(sersock, d_buf + t, MAXDATASIZE - t, 0)) > 0)
+                {
+                    break;
+                }
+                send(newfd, d_buf, MAXDATASIZE, 0);
+            }
+            fprintf(stdout, "%s", d_buf);
+            fflush(stdout);
+            send(newfd, d_buf, MAXDATASIZE, 0);
+            //send(newfd, d_buf, strlen(d_buf), 0);
+            freeaddrinfo(res);
+            close(sockfd);
+            close(newfd);
+            close(sersock);
+            return 0;
+        }
     }
 }
