@@ -39,6 +39,42 @@ void segment_d(char *header)
         i++;
     }
 }
+int sendall(int s, char *buf, int *len)
+{
+    int n = 0;
+    int total = 0;        // how many bytes we've sent
+    int bytesleft = *len; // how many we have left to send    int n;
+    while (total < *len)
+    {
+        n = send(s, buf + total, bytesleft, 0);
+        if (n == -1)
+        {
+            break;
+        }
+        total += n;
+        bytesleft -= n;
+    }
+    *len = total;            // return number actually sent here
+    return n == -1 ? -1 : 0; // return -1 on failure, 0 on success }
+}
+int recvall(int s, char *buf, int *len)
+{
+    int n = 0;
+    int total = 0;        // how many bytes we've sent
+    int bytesleft = *len; // how many we have left to send    int n;
+    while (total < *len)
+    {
+        n = recv(s, buf + total, bytesleft, 0);
+        if (n == -1)
+        {
+            break;
+        }
+        total += n;
+        bytesleft -= n;
+    }
+    *len = total;            // return number actually sent here
+    return n == -1 ? -1 : 0; // return -1 on failure, 0 on success }
+}
 /*
 HTTP/1.1 200 OK
 Content-Encoding: gzip
@@ -189,7 +225,7 @@ int main(int argc, char const *argv[])
     while (1)
     {
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-        if (fork() == 0)
+        if (/*fork() == */ 0)
         {
             continue;
         }
@@ -231,23 +267,56 @@ int main(int argc, char const *argv[])
             fflush(stdout); */
 
             int t = 0;
+            int s = 0;
+            int datasize = 0;
             while (1)
             {
-                if ((t = recv(sersock, d_buf + t, MAXDATASIZE - t, 0)) > 0)
+                //datasize = (s > t) ? s - t : (MAXDATASIZE == t ? MAXDATASIZE : MAXDATASIZE - t);
+                int len = MAXDATASIZE;
+                t = recv(sersock, d_buf, len, 0);
+                
+                if (t == 0)
+                {
+                    sendall(newfd, d_buf, &t);
+                    shutdown(newfd, 1);
+                    //s=recv(newfd,d_buf,len,0);
+                    break;
+                }
+                sendall(newfd, d_buf, &t);
+                if(t==-1)
                 {
                     break;
                 }
-                send(newfd, d_buf, MAXDATASIZE, 0);
+                memset(d_buf, 0, MAXDATASIZE);
             }
-            fprintf(stdout, "%s", d_buf);
+
+            /* while ((s = read(newfd, d_buf, MAXDATASIZE)) != EOF)
+                {
+                    write(sersock, d_buf, MAXDATASIZE);
+                    memset(d_buf,0,MAXDATASIZE);
+                } */
+            /* if (t == EOF && s == EOF)
+                {
+                    break;
+                } */
+            /*datasize=(s>t)?s-t:(//maxdatasize-t
+                    maxdatasize==t?maxdatasize?maxdatasize-t
+                )
+                */
+            /* if ((t = recv(sersock, d_buf + t, MAXDATASIZE - t, 0)) > 0)
+                {
+                    break;
+                }
+                send(newfd, d_buf, MAXDATASIZE, 0); */
+        }
+        /*             fprintf(stdout, "%s", d_buf);
             fflush(stdout);
             send(newfd, d_buf, MAXDATASIZE, 0);
             //send(newfd, d_buf, strlen(d_buf), 0);
-            freeaddrinfo(res);
-            close(sockfd);
-            close(newfd);
-            close(sersock);
-            return 0;
-        }
+            freeaddrinfo(res); */
+        close(sockfd);
+        close(newfd);
+        close(sersock);
+        return 0;
     }
 }
