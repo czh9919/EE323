@@ -10,3 +10,4 @@ server
 *.pdf
 TODOlist
 proxy
+*.o

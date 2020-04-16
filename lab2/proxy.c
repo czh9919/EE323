@@ -75,22 +75,25 @@ int recvall(int s, char *buf, int *len)
     *len = total;            // return number actually sent here
     return n == -1 ? -1 : 0; // return -1 on failure, 0 on success }
 }
-/*
-HTTP/1.1 200 OK
-Content-Encoding: gzip
-Accept-Ranges: bytes
-Age: 220343
-Cache-Control: max-age=604800//11
-Content-Type: text/html; charset=UTF-8
-Date: Tue, 14 Apr 2020 05:54:26 GMT
-Etag: "3147526947"
-Expires: Tue, 21 Apr 2020 05:54:26 GMT//30
-Last-Modified: Thu, 17 Oct 2019 07:18:26 GMT
-Server: ECS (oxr/8324)
-Vary: Accept-Encoding
-X-Cache: HIT
-Content-Length: 648
-*/
+int fr_ser(int sersock, int newfd, int len)
+{
+    int t;
+    while (1)
+    {
+        t = recv(sersock, d_buf, len,0);
+        if (t == 0)
+        {
+            shutdown(newfd, 1);
+            return 0;
+        } 
+        if (t == -1)
+        {
+            return -1;
+        }
+        
+        sendall(newfd, d_buf, &t);
+    }
+}
 void segment(char *URL)
 {
     char *pch;
@@ -139,7 +142,7 @@ void segment_h(char *header)
         {
         case 1:
             strcpy(temp, pch);
-            fprintf(stdout, "%s", temp);
+            //fprintf(stdout, "%s", temp);
             strcpy(o_method, temp);
             if (strcmp(o_method, "CONNECT") == 0)
             {
@@ -148,17 +151,17 @@ void segment_h(char *header)
             break;
         case 2:
             strcpy(temp, pch);
-            fprintf(stdout, "%s", temp); //2
+            //fprintf(stdout, "%s", temp); //2
             strcpy(o_object, temp);
-            fflush(stdout);
+            //fflush(stdout);
             break;
         case 5:
             if (n == 0)
             {
                 strcpy(temp, pch);
-                fprintf(stdout, "%s", temp); //5
+                //fprintf(stdout, "%s", temp); //5
                 strcpy(o_URL, temp);
-                fflush(stdout);
+                //fflush(stdout);
             }
 
             break;
@@ -166,9 +169,9 @@ void segment_h(char *header)
             if (n == 1)
             {
                 strcpy(temp, pch);
-                fprintf(stdout, "%s", temp); //5
+                //fprintf(stdout, "%s", temp); //5
                 strcpy(o_URL, temp);
-                fflush(stdout);
+                //fflush(stdout);
             }
             break;
         default:
@@ -198,11 +201,15 @@ int main(int argc, char const *argv[])
     hints.ai_flags = AI_PASSIVE;
 
     int pid;
-    pipe(p);
+    //pipe(p);
     /*     if ((pid = fork()) == 0)//>
     { */
-    strcpy(port, "5711");
-    if ((status = getaddrinfo(NULL, port, &hints, &res)) != 0)
+    if(argc!=2)
+    {
+        printf("usage: add a port");
+        return -1;
+    }
+    if ((status = getaddrinfo(NULL, argv[1], &hints, &res)) != 0)
     {
         fprintf(stderr, "getaddinfo: %s\n", gai_strerror(status));
         return 2;
@@ -225,7 +232,7 @@ int main(int argc, char const *argv[])
     while (1)
     {
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
-        if (/*fork() == */ 0)
+        if (fork() == 0)
         {
             continue;
         }
@@ -233,12 +240,12 @@ int main(int argc, char const *argv[])
         {
             char pch[MAXDATASIZE];
             int i;
-            fprintf(stdout, " %s \n", buf);
-            fflush(stdout);
+            //fprintf(stdout, " %s \n", buf);
+            //fflush(stdout);
             strcpy(pch, buf);
             segment_h(pch);
-            fprintf(stdout, "%s", o_URL);
-            fprintf(stdout, "%s", o_object);
+            //fprintf(stdout, "%s", o_URL);
+            //fprintf(stdout, "%s", o_object);
             segment(o_URL);
             if (*o_port == '\0')
             {
@@ -255,9 +262,11 @@ int main(int argc, char const *argv[])
             {
                 perror("connect error");
             }
-            //sprintf(buf,"%s %s HTTP/1.0\r\nHost: %s\r\n\n",o_method,o_object,o_URL);
-            fprintf(stdout, "%s", buf);
-            fflush(stdout);
+            //GET / HTTP/1.0 Host: www.kaist.edu \r\n\r\n
+            memset(buf, 0, strlen(buf));
+            sprintf(buf,"%s %s HTTP/1.0\r\nHost: %s\r\n\r\n","GET",o_object,o_URL);
+            //fprintf(stdout, "%s", buf);
+            //fflush(stdout);
             send(sersock, buf, strlen(buf), 0);
             memset(buf, 0, strlen(buf));
             /* recv(sersock, buf, MAXDATASIZE, 0);
@@ -269,10 +278,18 @@ int main(int argc, char const *argv[])
             int t = 0;
             int s = 0;
             int datasize = 0;
+            // while(1)
+            // {
+            //     t = fr_ser(sersock, newfd, MAXDATASIZE);
+            //     if(t==0||t==-1)
+            //     {
+            //         break;
+            //     }
+            // }
             while (1)
             {
                 //datasize = (s > t) ? s - t : (MAXDATASIZE == t ? MAXDATASIZE : MAXDATASIZE - t);
-                int len = MAXDATASIZE;
+                /* int len = MAXDATASIZE;
                 t = recv(sersock, d_buf, len, 0);
                 
                 if (t == 0)
@@ -287,33 +304,21 @@ int main(int argc, char const *argv[])
                 {
                     break;
                 }
-                memset(d_buf, 0, MAXDATASIZE);
-            }
-
-            /* while ((s = read(newfd, d_buf, MAXDATASIZE)) != EOF)
+                memset(d_buf, 0, MAXDATASIZE); */
+                if (s != -1)
                 {
-                    write(sersock, d_buf, MAXDATASIZE);
-                    memset(d_buf,0,MAXDATASIZE);
-                } */
-            /* if (t == EOF && s == EOF)
+                    t = fr_ser(sersock, newfd, MAXDATASIZE);
+                }
+                /* if (t != -1)
                 {
-                    break;
+                    s = fr_ser(newfd, sersock, MAXDATASIZE);
                 } */
-            /*datasize=(s>t)?s-t:(//maxdatasize-t
-                    maxdatasize==t?maxdatasize?maxdatasize-t
-                )
-                */
-            /* if ((t = recv(sersock, d_buf + t, MAXDATASIZE - t, 0)) > 0)
+                if ( (t == 0)||t==-1/* || (t == -1) */)
                 {
                     break;
                 }
-                send(newfd, d_buf, MAXDATASIZE, 0); */
+            }
         }
-        /*             fprintf(stdout, "%s", d_buf);
-            fflush(stdout);
-            send(newfd, d_buf, MAXDATASIZE, 0);
-            //send(newfd, d_buf, strlen(d_buf), 0);
-            freeaddrinfo(res); */
         close(sockfd);
         close(newfd);
         close(sersock);
