@@ -9,6 +9,63 @@ char o_URL[100] = {0};
 char o_object[100] = {0};
 char o_port[100] = {0};
 int data_length = 0;
+void cr_link_list()
+{
+    int len;
+    struct node_URL *current;
+    struct node_URL *prev;
+    char URL_buf[MAXDATASIZE];
+    memset(URL_buf, 0, sizeof(URL_buf));
+
+    while (fgets(URL_buf, MAXDATASIZE, stdin) != NULL)
+    {
+        if (*URL_buf == '\0')
+        {
+            break;
+        }
+        if (head == NULL)
+        {
+            head = (struct node_URL *)malloc(sizeof(struct node_URL));
+            current = head;
+        }
+        else
+        {
+            current = (struct node_URL *)malloc(sizeof(struct node_URL));
+            prev->next = current;
+        }
+        char *p;
+        len = strlen(URL_buf);
+        URL_buf[len-1] = '\0';
+        strcpy(current->URL, URL_buf);
+        prev = current;
+        memset(URL_buf, 0, sizeof(URL_buf));
+    }
+}
+int search(struct node_URL *head)
+{
+    int t = 0;
+    struct node_URL *current;
+    struct node_URL *prev;
+    current = head;
+    while (current != NULL)
+    {
+        if (strcmp(current->URL, o_URL) == 0)
+        {
+            return 1;
+        }
+        current = current->next;
+    }
+    return 0;
+}
+void redir()
+{
+    if (search(head) == 1)
+    {
+        strcpy(o_URL, "http://warning.or.kr");
+        strcpy(o_port, "80");
+        strcpy(o_object,"/");
+    }
+}
 void segment_d(char *header)
 {
     char *pch;
@@ -27,7 +84,7 @@ void segment_d(char *header)
             if (n == 1)
             {
                 strcpy(temp, pch);
-                fprintf(stdout, "%s", temp); //5
+                //fprintf(stdout, "%s", temp); //5
                 strcpy(o_URL, temp);
                 fflush(stdout);
             }
@@ -80,17 +137,17 @@ int fr_ser(int sersock, int newfd, int len)
     int t;
     while (1)
     {
-        t = recv(sersock, d_buf, len,0);
+        t = recv(sersock, d_buf, len, 0);
         if (t == 0)
         {
             shutdown(newfd, 1);
             return 0;
-        } 
+        }
         if (t == -1)
         {
             return -1;
         }
-        
+
         sendall(newfd, d_buf, &t);
     }
 }
@@ -109,14 +166,11 @@ void segment(char *URL)
         {
         case 1:
             strcpy(temp, pch);
-            fprintf(stdout, "%s", temp);
             strcpy(o_URL, temp);
             break;
         case 2:
             strcpy(temp, pch);
-            fprintf(stdout, "%s", temp); //2
             strcpy(o_port, temp);
-            fflush(stdout);
             break;
         default:
             break;
@@ -199,19 +253,16 @@ int main(int argc, char const *argv[])
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
-
+    //setvbuf(stdin, NULL, _IONBF, 0);
     int pid;
-    //pipe(p);
-    /*     if ((pid = fork()) == 0)//>
-    { */
-    if(argc!=2)
+    if (argc != 2)
     {
         printf("usage: add a port");
         return -1;
     }
     if ((status = getaddrinfo(NULL, argv[1], &hints, &res)) != 0)
     {
-        fprintf(stderr, "getaddinfo: %s\n", gai_strerror(status));
+        //fprintf(stderr, "getaddinfo: %s\n", gai_strerror(status));
         return 2;
     }
     sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -229,6 +280,8 @@ int main(int argc, char const *argv[])
     }
     addr_size = sizeof(their_addr);
     int n;
+    cr_link_list();
+
     while (1)
     {
         newfd = accept(sockfd, (struct sockaddr *)&their_addr, &addr_size);
@@ -240,13 +293,14 @@ int main(int argc, char const *argv[])
         {
             char pch[MAXDATASIZE];
             int i;
-            //fprintf(stdout, " %s \n", buf);
-            //fflush(stdout);
             strcpy(pch, buf);
             segment_h(pch);
-            //fprintf(stdout, "%s", o_URL);
-            //fprintf(stdout, "%s", o_object);
             segment(o_URL);
+            //TODO redirction
+
+            //redir();
+
+            //TODO
             if (*o_port == '\0')
             {
                 strcpy(o_port, "80");
@@ -254,7 +308,7 @@ int main(int argc, char const *argv[])
 
             if ((status = getaddrinfo(o_URL, o_port, &hints, &res)) != 0)
             {
-                fprintf(stderr, "getaddinfo: %s\n", gai_strerror(status));
+                //fprintf(stderr, "getaddinfo: %s\n", gai_strerror(status));
                 return 2;
             }
             sersock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
@@ -264,56 +318,22 @@ int main(int argc, char const *argv[])
             }
             //GET / HTTP/1.0 Host: www.kaist.edu \r\n\r\n
             memset(buf, 0, strlen(buf));
-            sprintf(buf,"%s %s HTTP/1.0\r\nHost: %s\r\n\r\n","GET",o_object,o_URL);
-            //fprintf(stdout, "%s", buf);
-            //fflush(stdout);
+            sprintf(buf, "%s %s HTTP/1.0\r\nHost: %s\r\n\r\n", "GET", o_object, o_URL);
+
             send(sersock, buf, strlen(buf), 0);
             memset(buf, 0, strlen(buf));
-            /* recv(sersock, buf, MAXDATASIZE, 0);
-
-            send(newfd, buf, strlen(buf), 0);
-            fprintf(stdout, "%s", buf);
-            fflush(stdout); */
 
             int t = 0;
             int s = 0;
             int datasize = 0;
-            // while(1)
-            // {
-            //     t = fr_ser(sersock, newfd, MAXDATASIZE);
-            //     if(t==0||t==-1)
-            //     {
-            //         break;
-            //     }
-            // }
+
             while (1)
             {
-                //datasize = (s > t) ? s - t : (MAXDATASIZE == t ? MAXDATASIZE : MAXDATASIZE - t);
-                /* int len = MAXDATASIZE;
-                t = recv(sersock, d_buf, len, 0);
-                
-                if (t == 0)
-                {
-                    sendall(newfd, d_buf, &t);
-                    shutdown(newfd, 1);
-                    //s=recv(newfd,d_buf,len,0);
-                    break;
-                }
-                sendall(newfd, d_buf, &t);
-                if(t==-1)
-                {
-                    break;
-                }
-                memset(d_buf, 0, MAXDATASIZE); */
                 if (s != -1)
                 {
                     t = fr_ser(sersock, newfd, MAXDATASIZE);
                 }
-                /* if (t != -1)
-                {
-                    s = fr_ser(newfd, sersock, MAXDATASIZE);
-                } */
-                if ( (t == 0)||t==-1/* || (t == -1) */)
+                if ((t == 0) || (t == -1))
                 {
                     break;
                 }

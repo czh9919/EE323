@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
@@ -12,17 +13,13 @@
 #define MAXDATASIZE 1024
 #define ERROR -1
 
-struct HTTP_Header
+struct node_URL
 {
-    char method[100];// GET
-    char obect[MAXDATASIZE];
-    char version[100];// HTTP/1.1
-    char host[100];// Host:
     char URL[MAXDATASIZE];
-    char *(i_Data[]);
-/*     char* connect;
-    char* status; */
+    struct node_URL *next;
 };
+
+struct node_URL *head = NULL;
 
 /*
 GET / HTTP/1.0
@@ -35,7 +32,7 @@ Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/a
 Accept-Encoding: gzip, deflate
 Accept-Language: zh-CN,zh;q=0.9
 
-Get / HTTP/1.1
+GET / HTTP/1.1
 Host: www.baidu.com
 Connection: keep-alive
 
