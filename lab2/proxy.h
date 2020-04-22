@@ -37,4 +37,10 @@ Host: www.baidu.com
 Connection: keep-alive
 
 
+307
+
+HTTP/1.1 307 Temporary Redirect
+<head> 
+  <meta http-equiv="Refresh" content="0; URL=https://example.com/">
+</head>
 */

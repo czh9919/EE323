@@ -16,29 +16,34 @@ void cr_link_list()
     struct node_URL *prev;
     char URL_buf[MAXDATASIZE];
     memset(URL_buf, 0, sizeof(URL_buf));
-
-    while (fgets(URL_buf, MAXDATASIZE, stdin) != NULL)
+    if (!isatty(fileno(stdin)))
     {
-        if (*URL_buf == '\0')
+        while (fgets(URL_buf, MAXDATASIZE, stdin) != NULL)
         {
-            break;
+            if (*URL_buf == '\0')
+            {
+                break;
+            }
+            if (head == NULL)
+            {
+                head = (struct node_URL *)malloc(sizeof(struct node_URL));
+                current = head;
+            }
+            else
+            {
+                current = (struct node_URL *)malloc(sizeof(struct node_URL));
+                prev->next = current;
+            }
+            char *p;
+            if (strchr(URL_buf, '\n') != NULL)
+            {
+                len = strlen(URL_buf);
+                URL_buf[len - 1] = '\0';
+            }
+            strcpy(current->URL, URL_buf);
+            prev = current;
+            memset(URL_buf, 0, sizeof(URL_buf));
         }
-        if (head == NULL)
-        {
-            head = (struct node_URL *)malloc(sizeof(struct node_URL));
-            current = head;
-        }
-        else
-        {
-            current = (struct node_URL *)malloc(sizeof(struct node_URL));
-            prev->next = current;
-        }
-        char *p;
-        len = strlen(URL_buf);
-        URL_buf[len-1] = '\0';
-        strcpy(current->URL, URL_buf);
-        prev = current;
-        memset(URL_buf, 0, sizeof(URL_buf));
     }
 }
 int search(struct node_URL *head)
@@ -57,13 +62,20 @@ int search(struct node_URL *head)
     }
     return 0;
 }
-void redir()
+void redir(int newfd)
 {
+    char redir_doc[MAXDATASIZE];
+
     if (search(head) == 1)
     {
-        strcpy(o_URL, "http://warning.or.kr");
+        /*         sprintf(redir_doc, "HTTP/1.1 307 Temporary Redirect\nContent-Length: {}\n<head>\n  <meta http-equiv=\"Refresh\" content=\"0; URL=%s/\">\n</head>", "warning.or.kr");
+        send(newfd, buf, strlen(buf), 0);
+        close(newfd);
+        exit(0); */
+
+        strcpy(o_URL, "warning.or.kr");
         strcpy(o_port, "80");
-        strcpy(o_object,"/");
+        strcpy(o_object, "/");
     }
 }
 void segment_d(char *header)
@@ -289,6 +301,7 @@ int main(int argc, char const *argv[])
         {
             continue;
         }
+        /* stat: */
         if ((status = recv(newfd, buf, MAXDATASIZE, 0)) > 0)
         {
             char pch[MAXDATASIZE];
@@ -298,7 +311,16 @@ int main(int argc, char const *argv[])
             segment(o_URL);
             //TODO redirction
 
-            //redir();
+            redir(newfd);
+            /* char redir_doc[MAXDATASIZE];
+            if (search(head) == 1)
+            {
+                int len0 = strlen("\n<head>\n  <meta http-equiv=\"Refresh\" content=\"0; URL=warning.or.kr/\">\n</head>");
+                sprintf(redir_doc, "HTTP/1.1 307 Temporary Redirect\nContent-Length: %d\n<head>\n  <meta http-equiv=\"Refresh\" content=\"0; URL=%s/\">\n</head>", len0, "warning.or.kr");
+                int len1 = strlen(redir_doc);
+                sendall(newfd, redir_doc, &len1);
+                goto stat;
+            } */
 
             //TODO
             if (*o_port == '\0')
@@ -308,7 +330,7 @@ int main(int argc, char const *argv[])
 
             if ((status = getaddrinfo(o_URL, o_port, &hints, &res)) != 0)
             {
-                //fprintf(stderr, "getaddinfo: %s\n", gai_strerror(status));
+                fprintf(stderr, "getaddinfo: %s\n", gai_strerror(status));
                 return 2;
             }
             sersock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
