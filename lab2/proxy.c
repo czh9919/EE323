@@ -163,6 +163,21 @@ int fr_ser(int sersock, int newfd, int len)
         sendall(newfd, d_buf, &t);
     }
 }
+int recv_client(int newfd)
+{
+    int status;
+    char temp_buf[MAXDATASIZE];
+    while ((status = recv(newfd, temp_buf, MAXDATASIZE, 0)) > 0)
+    {
+        temp_buf[status]='\0';
+        if (temp_buf[0] == '\n' || temp_buf[0] == '\r')
+        {
+            break;
+        }
+        sprintf(buf, "%s%s", buf, temp_buf);
+    }
+    return strlen(buf);
+}
 void segment(char *URL)
 {
     char *pch;
@@ -302,7 +317,7 @@ int main(int argc, char const *argv[])
             continue;
         }
         /* stat: */
-        if ((status = recv(newfd, buf, MAXDATASIZE, 0)) > 0)
+        if (recv_client(newfd) > 0)
         {
             char pch[MAXDATASIZE];
             int i;
