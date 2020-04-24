@@ -78,36 +78,7 @@ void redir(int newfd)
         strcpy(o_object, "/");
     }
 }
-void segment_d(char *header)
-{
-    char *pch;
-    int i = 0;
-    int n = 0;
-    char str[MAXDATASIZE];
-    strcpy(str, header);
-    pch = strtok(str, " \r\n");
-    i++;
-    char temp[100];
-    while (pch != NULL)
-    {
-        switch (i)
-        {
-        case 46:
-            if (n == 1)
-            {
-                strcpy(temp, pch);
-                //fprintf(stdout, "%s", temp); //5
-                strcpy(o_URL, temp);
-                fflush(stdout);
-            }
-            break;
-        default:
-            break;
-        }
-        pch = strtok(NULL, " \r\n");
-        i++;
-    }
-}
+
 int sendall(int s, char *buf, int *len)
 {
     int n = 0;
@@ -169,9 +140,11 @@ int recv_client(int newfd)
     char temp_buf[MAXDATASIZE];
     while ((status = recv(newfd, temp_buf, MAXDATASIZE, 0)) > 0)
     {
-        temp_buf[status]='\0';
-        if (temp_buf[0] == '\n' || temp_buf[0] == '\r')
+        temp_buf[status] = '\0';
+        int t = strlen(temp_buf);
+        if ((temp_buf[0] == '\n' || temp_buf[0] == '\r') || (temp_buf[t - 1] == '\n' && temp_buf[t - 3] == '\n') || (temp_buf[t - 1] == '\n' && temp_buf[t - 2] == '\n'))
         {
+            sprintf(buf, "%s%s", buf, temp_buf);
             break;
         }
         sprintf(buf, "%s%s", buf, temp_buf);
@@ -236,27 +209,15 @@ void segment_h(char *header)
             strcpy(o_object, temp);
             //fflush(stdout);
             break;
-        case 5:
-            if (n == 0)
-            {
-                strcpy(temp, pch);
-                //fprintf(stdout, "%s", temp); //5
-                strcpy(o_URL, temp);
-                //fflush(stdout);
-            }
-
-            break;
-        case 6:
-            if (n == 1)
-            {
-                strcpy(temp, pch);
-                //fprintf(stdout, "%s", temp); //5
-                strcpy(o_URL, temp);
-                //fflush(stdout);
-            }
-            break;
         default:
-            break;
+            if (strcmp("Host:", pch) == 0)
+            {
+                pch = strtok(NULL, " \r\n");
+                strcpy(temp, pch);
+                //fprintf(stdout, "%s", temp); //5
+                strcpy(o_URL, temp);
+                //fflush(stdout);
+            }
         }
         pch = strtok(NULL, " \r\n");
         i++;
