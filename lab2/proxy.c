@@ -34,7 +34,12 @@ void cr_link_list()
                 current = (struct node_URL *)malloc(sizeof(struct node_URL));
                 prev->next = current;
             }
-            char *p;
+            char temp[MAXDATASIZE];
+            if (strncmp(URL_buf, "http://", 7) == 0)
+            {
+                strncpy(temp, URL_buf + 7, sizeof(URL_buf));
+                strncpy(URL_buf, temp, sizeof(temp));
+            }
             if (strchr(URL_buf, '\n') != NULL)
             {
                 len = strlen(URL_buf);
@@ -48,9 +53,7 @@ void cr_link_list()
 }
 int search(struct node_URL *head)
 {
-    int t = 0;
     struct node_URL *current;
-    struct node_URL *prev;
     current = head;
     while (current != NULL)
     {
@@ -64,7 +67,6 @@ int search(struct node_URL *head)
 }
 void redir(int newfd)
 {
-    char redir_doc[MAXDATASIZE];
 
     if (search(head) == 1)
     {
@@ -75,7 +77,7 @@ void redir(int newfd)
 
         strcpy(o_URL, "warning.or.kr");
         strcpy(o_port, "80");
-        strcpy(o_object, "/");
+        strcpy(o_object, "http://warning.or.kr/");
     }
 }
 
@@ -97,24 +99,7 @@ int sendall(int s, char *buf, int *len)
     *len = total;            // return number actually sent here
     return n == -1 ? -1 : 0; // return -1 on failure, 0 on success }
 }
-int recvall(int s, char *buf, int *len)
-{
-    int n = 0;
-    int total = 0;        // how many bytes we've sent
-    int bytesleft = *len; // how many we have left to send    int n;
-    while (total < *len)
-    {
-        n = recv(s, buf + total, bytesleft, 0);
-        if (n == -1)
-        {
-            break;
-        }
-        total += n;
-        bytesleft -= n;
-    }
-    *len = total;            // return number actually sent here
-    return n == -1 ? -1 : 0; // return -1 on failure, 0 on success }
-}
+
 int fr_ser(int sersock, int newfd, int len)
 {
     int t;
@@ -164,10 +149,6 @@ void segment(char *URL)
     {
         switch (i)
         {
-        case 1:
-            strcpy(temp, pch);
-            strcpy(o_URL, temp);
-            break;
         case 2:
             strcpy(temp, pch);
             strcpy(o_port, temp);
@@ -188,8 +169,8 @@ void segment_h(char *header)
     char str[MAXDATASIZE];
     strcpy(str, header);
     pch = strtok(str, " \r\n");
+    char temp[MAXDATASIZE];
     i++;
-    char temp[100];
     while (pch != NULL)
     {
         switch (i)
@@ -198,10 +179,6 @@ void segment_h(char *header)
             strcpy(temp, pch);
             //fprintf(stdout, "%s", temp);
             strcpy(o_method, temp);
-            if (strcmp(o_method, "CONNECT") == 0)
-            {
-                n = 1;
-            }
             break;
         case 2:
             strcpy(temp, pch);
@@ -223,6 +200,18 @@ void segment_h(char *header)
         i++;
     }
 };
+void Find_HTTP(int newfd)
+{
+    char http_400[] = "HTTP/1.0 400 Bad Request\r\nconnection: close\r\ncontent-length: 0\r\n";
+    char temp[MAXDATASIZE];
+    if (strncmp(o_object, "http://", 7) == 0)
+    {
+        //400
+        int len=strlen(http_400);
+        sendall(newfd, http_400, &len);
+        exit(1); 
+    }
+}
 
 int main(int argc, char const *argv[])
 {
@@ -231,7 +220,6 @@ int main(int argc, char const *argv[])
     struct addrinfo *res;
     struct addrinfo hints;
     int status;
-    char ipstr[INET6_ADDRSTRLEN];
     int sockfd, newfd;
     int sersock;
 
@@ -267,7 +255,6 @@ int main(int argc, char const *argv[])
         return 2;
     }
     addr_size = sizeof(their_addr);
-    int n;
     cr_link_list();
 
     while (1)
@@ -281,9 +268,9 @@ int main(int argc, char const *argv[])
         if (recv_client(newfd) > 0)
         {
             char pch[MAXDATASIZE];
-            int i;
             strcpy(pch, buf);
             segment_h(pch);
+            //Find_HTTP(newfd);
             segment(o_URL);
             //TODO redirction
 
@@ -323,7 +310,6 @@ int main(int argc, char const *argv[])
 
             int t = 0;
             int s = 0;
-            int datasize = 0;
 
             while (1)
             {
