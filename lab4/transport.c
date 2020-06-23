@@ -54,7 +54,7 @@ struct timespec time_out()
     struct timeval tv;
     gettimeofday(&tv, NULL);
     struct timespec ts;
-    ts.tv_sec = tv.tv_sec + 10;
+    ts.tv_sec = tv.tv_sec + 100;
     ts.tv_nsec = tv.tv_usec * 1000;
     return ts;
 }
@@ -118,23 +118,23 @@ void transport_init(mysocket_t sd, bool_t is_active)
 
     if (is_active)
     {
-        syn = (struct tcphdr *)calloc(1, sizeof(struct tcphdr));
+        syn = (struct tcphdr *)calloc(1, STCP_MSS);
         syn->th_seq = ctx->initial_sequence_num;
         syn->th_off = 5;
         syn->th_flags = TH_SYN;
         syn->th_win = STCP_MSS;
 
         print_log(ctx->fp_s, syn, ctx, SEND);
-        stcp_network_send(sd, syn, sizeof(struct tcphdr), NULL);
+        stcp_network_send(sd, syn, STCP_MSS, NULL);
 
         struct tcphdr *syn_ack;
-        syn_ack = (struct tcphdr *)calloc(1, sizeof(struct tcphdr));
+        syn_ack = (struct tcphdr *)calloc(1, STCP_MSS);
         unsigned int event;
         struct timespec ts_timeout;
         ts_timeout = time_out();
         event = stcp_wait_for_event(sd, NETWORK_DATA, &ts_timeout);
 
-        stcp_network_recv(sd, syn_ack, sizeof(struct tcphdr));
+        stcp_network_recv(sd, syn_ack, STCP_MSS);
         print_log(ctx->fp_r, syn_ack, ctx, RECV);
 
         assert(syn_ack->th_flags == TH_SYN | TH_ACK);
@@ -146,14 +146,14 @@ void transport_init(mysocket_t sd, bool_t is_active)
         slw_start(ctx);
         /* ACK */
         struct tcphdr *ack;
-        ack = (struct tcphdr *)calloc(1, sizeof(struct tcphdr));
+        ack = (struct tcphdr *)calloc(1, STCP_MSS);
         ack->th_seq = ctx->initial_sequence_num;
         ack->th_ack = syn_ack->th_seq + 1;
         ack->th_flags = TH_ACK;
         ack->th_off = 5;
 
         print_log(ctx->fp_s, ack, ctx, SEND);
-        stcp_network_send(sd, ack, sizeof(struct tcphdr), NULL);
+        stcp_network_send(sd, ack, STCP_MSS, NULL);
 
         /* code */
         free(syn);
@@ -168,9 +168,10 @@ void transport_init(mysocket_t sd, bool_t is_active)
         event = stcp_wait_for_event(sd, NETWORK_DATA, &ts_timeout);
         struct tcphdr *syn;
         struct tcphdr *syn_ack;
+        syn = (struct tcphdr *)calloc(1, STCP_MSS);
         assert(event == NETWORK_DATA);
 
-        stcp_network_recv(sd, syn, sizeof(struct tcphdr));
+        stcp_network_recv(sd, syn, STCP_MSS);
         print_log(ctx->fp_r, syn, ctx, RECV);
 
         assert(syn->th_flags == TH_SYN);
@@ -180,26 +181,27 @@ void transport_init(mysocket_t sd, bool_t is_active)
 
         ctx->initial_sequence_num = ctx->initial_sequence_num + 1;
         ctx->nextseqnum = ctx->nextseqnum + 1;
-        ctx->rcv_base = syn_ack->th_seq + 1;
+        ctx->rcv_base++;
         ctx->swnd = MIN(syn->th_win, ctx->rwnd);
 
-        syn_ack = (struct tcphdr *)calloc(1, sizeof(struct tcphdr));
+        syn_ack = (struct tcphdr *)calloc(1, ctx->swnd);
         syn_ack->th_flags = TH_SYN | TH_ACK;
         syn_ack->th_ack = syn->th_seq;
         syn_ack->th_seq = ctx->initial_sequence_num;
-        syn->th_off = 5;
-        syn->th_win = STCP_MSS;
+        syn_ack->th_off = 5;
+        syn_ack->th_win = STCP_MSS;
 
         print_log(ctx->fp_s, syn_ack, ctx, SEND);
-        stcp_network_send(sd, syn, sizeof(struct tcphdr), NULL);
+        stcp_network_send(sd, syn_ack, STCP_MSS, NULL);
 
         /*
          *ACK received
          */
         event = stcp_wait_for_event(sd, NETWORK_DATA, &ts_timeout);
         struct tcphdr *ack;
+        ack = (struct tcphdr *)calloc(1, STCP_MSS);
         assert(event == NETWORK_DATA);
-        stcp_network_recv(sd, ack, sizeof(struct tcphdr));
+        stcp_network_recv(sd, ack, STCP_MSS);
         print_log(ctx->fp_r, ack, ctx, RECV);
 
         assert(ack->th_flags == TH_ACK);
@@ -264,55 +266,79 @@ static void control_loop(mysocket_t sd, context_t *ctx)
             /* see stcp_app_recv() */
             void *dst;
             ctx->swnd = MIN(ctx->cwnd, ctx->rwnd);
-            stcp_app_recv(sd, dst, ctx->swnd - sizeof(struct tcphdr));
+            dst = (void *)calloc(1, ctx->swnd);
+            /* stcp_app_recv(sd, dst, ctx->swnd); */
 
-            tcp_seq t = ctx->swnd - sizeof(struct tcphdr);
+            tcp_seq t = ctx->swnd;
             while (t >= 0)
             {
                 struct tcphdr *hdr;
-                hdr = (struct tcphdr *)calloc(1, sizeof(struct tcphdr));
+                hdr = (struct tcphdr *)calloc(1, STCP_MSS);
                 hdr->th_seq = ctx->initial_sequence_num;
                 hdr->th_off = 5;
                 hdr->th_win = ctx->swnd;
                 void *send_buf;
-                send_buf = dst;
-                dst = dst + STCP_MSS;
-                t = t - STCP_MSS;
-                stcp_network_send(sd, hdr, sizeof(struct tcphdr), send_buf, STCP_MSS, NULL);
+                /* send_buf = dst;
+                dst = dst + (STCP_MSS - sizeof(struct tcphdr)); */
+                t = t - (STCP_MSS - sizeof(struct tcphdr));
+                send_buf = (struct tcphdr *)calloc(1, STCP_MSS - sizeof(struct tcphdr));
+                int len;
+
+                len = stcp_app_recv(sd, send_buf, STCP_MSS - sizeof(struct tcphdr));
+                if (len <= 0)
+                    break;
+                stcp_network_send(sd, hdr, sizeof(struct tcphdr), send_buf, STCP_MSS - sizeof(struct tcphdr), NULL);
                 print_log(ctx->fp_s, hdr, ctx, SEND);
                 free(hdr);
+                /*hdr = (struct tcphdr *)calloc(1, STCP_MSS);
+                 stcp_network_recv(sd, hdr, STCP_MSS);
+                print_log(ctx->fp_r, hdr, ctx, RECV);
+                if ((hdr)->th_flags == TH_ACK)
+                {
+                    ctx->initial_sequence_num++;
+                    ctx->nextseqnum++;
+                    ctx->send_base++;
+                    slw_start(ctx);
+                }
+                else
+                {
+                    continue;
+                } */
             }
         }
         if (event & NETWORK_DATA)
         {
             void *dst;
             struct tcphdr *hdr;
-            stcp_network_recv(sd, dst, sizeof(struct tcphdr));
-            print_log(ctx->fp_r, dst, ctx, RECV);
-            if (((struct tcphdr *)dst)->th_flags == TH_ACK)
+            dst = calloc(1, ctx->swnd);
+            hdr = (struct tcphdr *)calloc(1, STCP_MSS);
+            stcp_network_recv(sd, hdr, STCP_MSS);
+            assert(hdr != NULL);
+            print_log(ctx->fp_r, hdr, ctx, RECV);
+            if ((hdr)->th_flags == TH_ACK)
             {
-                hdr = (struct tcphdr *)dst;
                 ctx->initial_sequence_num++;
                 ctx->nextseqnum++;
                 ctx->send_base++;
                 slw_start(ctx);
             }
-            if (((struct tcphdr *)dst)->th_flags == TH_FIN)
+            if ((hdr)->th_flags == TH_FIN)
             {
                 struct tcphdr *ack;
-                ack = (struct tcphdr *)calloc(1, sizeof(struct tcphdr));
+
+                ack = (struct tcphdr *)calloc(1, STCP_MSS);
                 ack->th_seq = ctx->initial_sequence_num;
-                ack->th_ack = ((struct tcphdr *)dst)->th_seq + 1;
+                ack->th_ack = ((struct tcphdr *)hdr)->th_seq + 1;
                 ack->th_flags = TH_ACK | TH_FIN;
                 ack->th_off = 5;
 
                 print_log(ctx->fp_s, ack, ctx, SEND);
-                stcp_network_send(sd, ack, sizeof(struct tcphdr), NULL);
-
-                stcp_network_recv(sd, hdr, sizeof(struct tcphdr));
+                stcp_network_send(sd, ack, STCP_MSS, NULL);
+                free(hdr);
+                hdr = (struct tcphdr *)calloc(1, STCP_MSS);
+                stcp_network_recv(sd, hdr, STCP_MSS);
                 print_log(ctx->fp_r, hdr, ctx, RECV);
                 free(ack);
-                free(dst);
 
                 break;
                 /* code */
@@ -321,33 +347,45 @@ static void control_loop(mysocket_t sd, context_t *ctx)
             {
                 ctx->rcv_base = hdr->th_seq + 1;
                 ctx->swnd = MIN(hdr->th_win, ctx->rwnd);
-                print_log(ctx->fp_r, dst, ctx, RECV);
-                stcp_network_recv(sd, dst, ctx->swnd - sizeof(struct tcphdr));
-                stcp_app_send(sd, dst, ctx->swnd - sizeof(struct tcphdr));
+                dst = hdr + sizeof(struct tcphdr);
+
+                print_log(ctx->fp_r, hdr, ctx, RECV);
+                stcp_app_send(sd, dst, STCP_MSS - sizeof(struct tcphdr));
+                struct tcphdr *ack;
+                ack = (struct tcphdr *)calloc(1, STCP_MSS);
+                ack->th_seq = ctx->initial_sequence_num;
+                ack->th_ack = hdr->th_seq + 1;
+                ack->th_flags = TH_ACK;
+                ack->th_off = 5;
+                stcp_network_send(sd, ack, STCP_MSS, NULL);
+                print_log(ctx->fp_s, ack, ctx, SEND);
             }
-            free(dst);
+            free(hdr);
             //todo
         }
         if (event & APP_CLOSE_REQUESTED)
         {
+            printf("hello\n");
             struct tcphdr *FIN;
+            FIN = (struct tcphdr *)calloc(1, STCP_MSS);
             FIN->th_flags = TH_FIN;
             FIN->th_seq = ctx->initial_sequence_num;
             FIN->th_off = 5;
+            stcp_network_send(sd, FIN, STCP_MSS, NULL);
 
             struct tcphdr *FIN_ACK;
-
-            stcp_network_recv(sd, FIN_ACK, sizeof(struct tcphdr));
+            FIN_ACK = (struct tcphdr *)calloc(1, STCP_MSS);
+            stcp_network_recv(sd, FIN_ACK, STCP_MSS);
             print_log(ctx->fp_r, FIN_ACK, ctx, RECV);
 
             assert(FIN_ACK->th_flags == TH_FIN | TH_ACK);
             struct tcphdr *ack;
-            ack = (struct tcphdr *)calloc(1, sizeof(struct tcphdr));
+            ack = (struct tcphdr *)calloc(1, STCP_MSS);
             ack->th_seq = ctx->initial_sequence_num;
             ack->th_ack = FIN_ACK->th_seq + 1;
             ack->th_flags = TH_ACK;
             ack->th_off = 5;
-            stcp_network_send(sd, ack, sizeof(struct tcphdr), NULL);
+            stcp_network_send(sd, ack, STCP_MSS, NULL);
             print_log(ctx->fp_s, ack, ctx, SEND);
             break;
             //todo
