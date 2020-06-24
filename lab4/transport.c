@@ -295,7 +295,15 @@ static void control_loop(mysocket_t sd, context_t *ctx)
                 /* void *buf;
                 buf = calloc(1, STCP_MSS);
                 memcpy(buf, hdr, sizeof(struct tcphdr)); */
-                memcpy(hdr + sizeof(struct tcphdr), send_buf, STCP_MSS - sizeof(struct tcphdr));
+                printf("send_buf_len:%d\n", MIN(STCP_MSS - sizeof(struct tcphdr), t));
+                int len_s=MIN(STCP_MSS - sizeof(struct tcphdr), t);
+
+                memcpy(hdr + sizeof(struct tcphdr), send_buf, len_s);
+                /* char N[STCP_MSS] = {0};
+                if (t < STCP_MSS - sizeof(struct tcphdr))
+                {
+                    memcpy(hdr + sizeof(struct tcphdr) + t, N, STCP_MSS - sizeof(struct tcphdr) - t);
+                } */
                 printf("%s\n", (((char *)(hdr + sizeof(struct tcphdr)))));
                 dst = dst + (STCP_MSS - sizeof(struct tcphdr));
                 t = t - (STCP_MSS - sizeof(struct tcphdr));
@@ -305,10 +313,10 @@ static void control_loop(mysocket_t sd, context_t *ctx)
                 if (len <= 0)
                     break; */
                 /* stcp_network_send(sd, hdr, sizeof(struct tcphdr), send_buf, STCP_MSS - sizeof(struct tcphdr), NULL); */
-                stcp_network_send(sd, hdr, STCP_MSS, NULL);
-                print_log(ctx->fp_s, hdr, ctx, SEND);
-
+                printf("hdr size:\n");
+                stcp_network_send(sd, hdr, STCP_MSS/* len_s+sizeof(struct tcphdr) */, NULL);
                 printf("send message finish\n");
+                print_log(ctx->fp_s, hdr, ctx, SEND);
 
                 /*
                 else
@@ -346,24 +354,26 @@ static void control_loop(mysocket_t sd, context_t *ctx)
             if ((hdr)->th_flags == TH_FIN)
             {
                 printf("close\n");
+                struct tcphdr *fin_ack;
+
+                fin_ack = (struct tcphdr *)calloc(1, STCP_MSS);
+                fin_ack->th_seq = ctx->initial_sequence_num;
+                fin_ack->th_ack = (hdr)->th_seq + 1;
+                fin_ack->th_flags = TH_ACK | TH_FIN;
+                fin_ack->th_off = 5;
+
+                print_log(ctx->fp_s, fin_ack, ctx, SEND);
+
+                stcp_network_send(sd, fin_ack, STCP_MSS, NULL);
+
                 struct tcphdr *ack;
-
                 ack = (struct tcphdr *)calloc(1, STCP_MSS);
-                ack->th_seq = ctx->initial_sequence_num;
-                ack->th_ack = (hdr)->th_seq + 1;
-                ack->th_flags = TH_ACK | TH_FIN;
-                ack->th_off = 5;
+                stcp_network_recv(sd, ack, STCP_MSS);
                 printf("close\n");
-
-                print_log(ctx->fp_s, ack, ctx, SEND);
-                stcp_network_send(sd, ack, STCP_MSS, NULL);
-
-                hdr = (struct tcphdr *)calloc(1, STCP_MSS);
-                stcp_network_recv(sd, hdr, STCP_MSS);
-                print_log(ctx->fp_r, hdr, ctx, RECV);
+                print_log(ctx->fp_r, ack, ctx, RECV);
                 free(ack);
 
-                break;
+                return;
                 /* code */
             }
             if (hdr->th_flags == 0)
