@@ -226,7 +226,7 @@ size_t _mysock_dequeue_buffer(mysock_context_t *ctx,
 
         memcpy(dst, node->data, MIN(max_len, node->data_len));
         packet_len = node->data_len;
-
+        /* printf("%s\n", (((char *)(node->data)))); */
         free(node->data);
 
         memset(node, 0, sizeof(*node));

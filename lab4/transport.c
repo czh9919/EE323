@@ -286,7 +286,9 @@ static void control_loop(mysocket_t sd, context_t *ctx)
                 hdr->th_off = 5;
                 hdr->th_win = ctx->swnd;
                 void *send_buf;
-                send_buf = dst;
+                send_buf=(struct tcphdr *)calloc(1, MIN(STCP_MSS - sizeof(struct tcphdr), t));
+                memcpy(send_buf,dst,MIN(STCP_MSS - sizeof(struct tcphdr), t));
+
                 if (*((char *)send_buf) == '\0')
                 {
                     printf("PASS\n");
@@ -299,7 +301,7 @@ static void control_loop(mysocket_t sd, context_t *ctx)
                 /* int len_s = MIN(STCP_MSS - sizeof(struct tcphdr), t);
                 memset(hdr + sizeof(struct tcphdr), 0, STCP_MSS - sizeof(struct tcphdr));*/
 
-                memcpy(hdr + sizeof(struct tcphdr), send_buf, MIN(STCP_MSS - sizeof(struct tcphdr), t));
+                memcpy(hdr + sizeof(struct tcphdr), (char *)send_buf, MIN(STCP_MSS - sizeof(struct tcphdr), t));
                 /* char N[STCP_MSS] = {0};
                 if (t < STCP_MSS - sizeof(struct tcphdr))
                 {
@@ -316,7 +318,7 @@ static void control_loop(mysocket_t sd, context_t *ctx)
                 /* stcp_network_send(sd, hdr, sizeof(struct tcphdr), send_buf, STCP_MSS - sizeof(struct tcphdr), NULL); */
                 printf("hdr size:%d\n",sizeof(struct tcphdr));
                 stcp_network_send(sd, hdr, STCP_MSS /* len_s+sizeof(struct tcphdr) */, NULL);
-                free(hdr);
+
                 printf("send message finish\n");
                 print_log(ctx->fp_s, hdr, ctx, SEND);
 
@@ -340,7 +342,7 @@ static void control_loop(mysocket_t sd, context_t *ctx)
         {
             void *dst;
             struct tcphdr *hdr;
-            dst = calloc(1, ctx->swnd);
+            dst = calloc(1, STCP_MSS);
             hdr = (struct tcphdr *)calloc(1, STCP_MSS);
             stcp_network_recv(sd, hdr, STCP_MSS);
 
@@ -416,7 +418,7 @@ static void control_loop(mysocket_t sd, context_t *ctx)
             stcp_network_recv(sd, FIN_ACK, STCP_MSS);
             print_log(ctx->fp_r, FIN_ACK, ctx, RECV);
 
-            assert(FIN_ACK->th_flags == (TH_FIN | TH_ACK));
+            /* assert(FIN_ACK->th_flags == (TH_FIN | TH_ACK)); */
             struct tcphdr *ack;
             ack = (struct tcphdr *)calloc(1, STCP_MSS);
             ack->th_seq = ctx->initial_sequence_num;
