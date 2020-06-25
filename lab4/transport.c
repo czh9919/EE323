@@ -296,25 +296,27 @@ static void control_loop(mysocket_t sd, context_t *ctx)
                 buf = calloc(1, STCP_MSS);
                 memcpy(buf, hdr, sizeof(struct tcphdr)); */
                 printf("send_buf_len:%d\n", MIN(STCP_MSS - sizeof(struct tcphdr), t));
-                int len_s=MIN(STCP_MSS - sizeof(struct tcphdr), t);
+                /* int len_s = MIN(STCP_MSS - sizeof(struct tcphdr), t);
+                memset(hdr + sizeof(struct tcphdr), 0, STCP_MSS - sizeof(struct tcphdr));*/
 
-                memcpy(hdr + sizeof(struct tcphdr), send_buf, len_s);
+                memcpy(hdr + sizeof(struct tcphdr), send_buf, MIN(STCP_MSS - sizeof(struct tcphdr), t));
                 /* char N[STCP_MSS] = {0};
                 if (t < STCP_MSS - sizeof(struct tcphdr))
                 {
                     memcpy(hdr + sizeof(struct tcphdr) + t, N, STCP_MSS - sizeof(struct tcphdr) - t);
                 } */
                 printf("%s\n", (((char *)(hdr + sizeof(struct tcphdr)))));
-                dst = dst + (STCP_MSS - sizeof(struct tcphdr));
-                t = t - (STCP_MSS - sizeof(struct tcphdr));
+                dst = dst + MIN(STCP_MSS - sizeof(struct tcphdr), t);
+                t = t - MIN(STCP_MSS - sizeof(struct tcphdr), t);
                 /* send_buf = (struct tcphdr *)calloc(1, STCP_MSS - sizeof(struct tcphdr)); */
 
                 /* len = stcp_app_recv(sd, send_buf, STCP_MSS - sizeof(struct tcphdr));
                 if (len <= 0)
                     break; */
                 /* stcp_network_send(sd, hdr, sizeof(struct tcphdr), send_buf, STCP_MSS - sizeof(struct tcphdr), NULL); */
-                printf("hdr size:\n");
-                stcp_network_send(sd, hdr, STCP_MSS/* len_s+sizeof(struct tcphdr) */, NULL);
+                printf("hdr size:%d\n",sizeof(struct tcphdr));
+                stcp_network_send(sd, hdr, STCP_MSS /* len_s+sizeof(struct tcphdr) */, NULL);
+                free(hdr);
                 printf("send message finish\n");
                 print_log(ctx->fp_s, hdr, ctx, SEND);
 
